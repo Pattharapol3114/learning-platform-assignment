@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Spinner from "../ui/Spinner";
 import { toDateTimeLocalValue } from "../../utils/date";
 import { validateAssignment } from "../../utils/validation";
@@ -49,10 +49,24 @@ function Field({ id, label, required, hint, error, children }) {
  *   onCancel: () => void,
  * }} props
  */
-export default function AssignmentForm({ cohorts, cohortsLoading, submitting, onSubmit, onCancel }) {
-  const [values, setValues] = useState(EMPTY_FORM);
+export default function AssignmentForm({
+  cohorts,
+  cohortsLoading,
+  submitting,
+  onSubmit,
+  onCancel,
+  initialValues = null,
+  submitLabel = "Create Assignment",
+}) {
+  const [values, setValues] = useState(initialValues ? { ...EMPTY_FORM, ...initialValues } : EMPTY_FORM);
   const [touched, setTouched] = useState({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  useEffect(() => {
+    setValues(initialValues ? { ...EMPTY_FORM, ...initialValues } : EMPTY_FORM);
+    setTouched({});
+    setSubmitAttempted(false);
+  }, [initialValues]);
 
   const errors = validateAssignment(values);
   const isValid = Object.keys(errors).length === 0;
@@ -169,7 +183,7 @@ export default function AssignmentForm({ cohorts, cohortsLoading, submitting, on
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-indigo-300"
         >
           {submitting && <Spinner className="h-4 w-4" label="Saving" />}
-          {submitting ? "Saving..." : "Create Assignment"}
+          {submitting ? "Saving..." : submitLabel}
         </button>
       </div>
     </form>

@@ -51,6 +51,10 @@ export const assignmentApi = {
   create(payload) {
     return request("/api/assignments", { method: "POST", body: payload });
   },
+
+  update(assignmentId, payload) {
+    return request(`/api/assignments/${encodeURIComponent(assignmentId)}`, { method: "PUT", body: payload });
+  },
 };
 
 // ---------- Team 05: Cohorts ----------
