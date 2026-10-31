@@ -113,9 +113,19 @@ export default function AssignmentDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link to="/" className="text-sm text-slate-500 hover:text-slate-800">
-        ← Back to dashboard
-      </Link>
+      <div className="flex items-center justify-between gap-3">
+        <Link to="/" className="text-sm text-slate-500 hover:text-slate-800">
+          ← Back to dashboard
+        </Link>
+        {!notFound && !isLoading && !isError && (
+          <Link
+            to={`/assignments/${assignmentId}/edit`}
+            className="inline-flex items-center rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+          >
+            Edit Assignment
+          </Link>
+        )}
+      </div>
 
       {isLoading ? (
         <DetailSkeleton />
