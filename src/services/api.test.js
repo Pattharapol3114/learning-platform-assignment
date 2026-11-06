@@ -1,6 +1,7 @@
 // @vitest-environment node
 // (the real fetch/AbortSignal APIs are needed by httpClient; jsdom lacks AbortSignal.any)
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { resolveApiBaseUrl } from "../config";
 import { assignmentApi, cohortApi, submissionApi } from "./api";
 
 let fetchMock;
@@ -15,6 +16,31 @@ beforeEach(() => {
 });
 
 afterEach(() => vi.unstubAllGlobals());
+
+describe("resolveApiBaseUrl", () => {
+  it("prefers the configured API base URL when provided", () => {
+    expect(
+      resolveApiBaseUrl({
+        env: { VITE_API_BASE_URL: "https://example.com/api" },
+        location: { origin: "https://preview.example.web.app" },
+      }),
+    ).toBe("https://example.com/api");
+  });
+
+  it("uses the active Firebase hosting origin for localhost, web.app, and firebaseapp.com preview URLs", () => {
+    expect(resolveApiBaseUrl({ env: {}, location: { origin: "http://localhost:5173" } })).toBe("http://localhost:5173");
+    expect(resolveApiBaseUrl({ env: {}, location: { origin: "https://learning-platform-assign-658de.web.app" } })).toBe(
+      "https://learning-platform-assign-658de.web.app",
+    );
+    expect(resolveApiBaseUrl({ env: {}, location: { origin: "https://preview-123--learning-platform-assign-658de.firebaseapp.com" } })).toBe(
+      "https://preview-123--learning-platform-assign-658de.firebaseapp.com",
+    );
+  });
+
+  it("falls back to a relative path when there is no explicit origin to use", () => {
+    expect(resolveApiBaseUrl({ env: {}, location: {} })).toBe("");
+  });
+});
 
 describe("submissionApi.listByAssignment (Team 06 integration)", () => {
   it("normalises a healthy Team 06 response", async () => {
