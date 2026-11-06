@@ -1,7 +1,22 @@
-// Base URL for the Team 05 API. Empty string = same origin (`/api/...`),
-// which goes through the Vite dev proxy. Set VITE_API_BASE_URL for builds
-// that call the API directly (the API must then allow CORS for that origin).
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+export function resolveApiBaseUrl({
+  env = import.meta.env,
+  location = typeof window !== "undefined" ? window.location : {},
+} = {}) {
+  const configuredBaseUrl = env.VITE_API_BASE_URL?.trim();
+  if (configuredBaseUrl) {
+    return configuredBaseUrl.replace(/\/+$/, "");
+  }
+
+  if (location.origin) {
+    return location.origin.replace(/\/+$/, "");
+  }
+
+  return "";
+}
+
+// Default to the active origin so Preview Channels, Hosting, and localhost all
+// target the same Firebase-hosted API without a stale hardcoded backend URL.
+export const API_BASE_URL = resolveApiBaseUrl();
 
 // Client-side timeout for every request (ms). The Team 06 proxy itself gives
 // up after 5s, so this leaves headroom for Vercel cold starts.

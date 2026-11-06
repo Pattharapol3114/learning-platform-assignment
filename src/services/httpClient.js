@@ -16,12 +16,18 @@ export async function request(path, { method = "GET", body, signal, timeout = RE
   const timeoutSignal = AbortSignal.timeout(timeout);
   const combinedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
 
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+  const payload = isFormData ? body : body ? JSON.stringify(body) : undefined;
+  const normalizedBaseUrl = (API_BASE_URL || "").replace(/\/+$/, "");
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const url = `${normalizedBaseUrl}${normalizedPath}`;
+
   let response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await fetch(url, {
       method,
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
+      headers: isFormData ? undefined : body ? { "Content-Type": "application/json" } : undefined,
+      body: payload,
       signal: combinedSignal,
     });
   } catch (err) {

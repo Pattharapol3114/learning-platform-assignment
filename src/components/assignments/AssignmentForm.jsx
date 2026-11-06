@@ -9,8 +9,51 @@ const EMPTY_FORM = {
   description: "",
   criteria: "",
   dueDate: "",
+  attachmentUrls: [],
+  attachmentFiles: [],
   attachmentUrl: "",
+  fileUrl: "",
+  attachmentName: "",
+  attachmentFile: null,
 };
+
+function normalizeUrls(input) {
+  if (Array.isArray(input)) {
+    return input.map((value) => String(value ?? "").trim());
+  }
+
+  if (typeof input === "string") {
+    const trimmed = input.trim();
+    return trimmed ? [trimmed] : [];
+  }
+
+  return [];
+}
+
+function syncAttachmentState(nextValues) {
+  const normalizedUrls = normalizeUrls(nextValues.attachmentUrls);
+  const legacyUrl = typeof nextValues.attachmentUrl === "string" ? nextValues.attachmentUrl.trim() : "";
+  const finalUrls = Array.isArray(nextValues.attachmentUrls)
+    ? normalizedUrls
+    : legacyUrl
+      ? [legacyUrl]
+      : [];
+  const finalFiles = Array.isArray(nextValues.attachmentFiles)
+    ? nextValues.attachmentFiles.filter(Boolean)
+    : nextValues.attachmentFile
+      ? [nextValues.attachmentFile]
+      : [];
+  const primaryUrl = finalUrls.find((url) => url && url.trim()) || legacyUrl || "";
+
+  return {
+    ...nextValues,
+    attachmentUrls: finalUrls,
+    attachmentFiles: finalFiles,
+    attachmentFile: finalFiles[0] ?? null,
+    attachmentUrl: primaryUrl,
+    fileUrl: nextValues.fileUrl ?? "",
+  };
+}
 
 const inputBase =
   "block w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-50";
@@ -40,17 +83,6 @@ function Field({ id, label, required, hint, error, children }) {
   );
 }
 
-/**
- * @param {{
- *   cohorts: { id: string, name: string }[] | null, // null = cohort list unavailable → free-text input
- *   cohortsLoading: boolean,
- *   submitting: boolean,
- *   onSubmit: (values: typeof EMPTY_FORM) => void,
- *   onCancel: () => void,
- *   initialValues?: Partial<typeof EMPTY_FORM> | null, // edit mode
- *   submitLabel?: string,
- * }} props
- */
 export default function AssignmentForm({
   cohorts,
   cohortsLoading,
@@ -60,8 +92,31 @@ export default function AssignmentForm({
   initialValues = null,
   submitLabel = "Create Assignment",
 }) {
-  // initialValues is read once; callers remount the form (via `key`) to reset it.
-  const [values, setValues] = useState(initialValues ? { ...EMPTY_FORM, ...initialValues } : EMPTY_FORM);
+  const [values, setValues] = useState(() => {
+    if (!initialValues) return EMPTY_FORM;
+
+    const normalizedUrls = normalizeUrls(
+      Array.isArray(initialValues.attachmentUrls)
+        ? initialValues.attachmentUrls
+        : normalizeUrls(initialValues.attachmentUrl),
+    );
+
+    const normalizedFiles = Array.isArray(initialValues.attachmentFiles)
+      ? initialValues.attachmentFiles
+      : initialValues.attachmentFile
+        ? [initialValues.attachmentFile]
+        : initialValues.fileUrl
+          ? [{ name: initialValues.attachmentName || "Attachment", url: initialValues.fileUrl }]
+          : [];
+
+    return syncAttachmentState({
+      ...EMPTY_FORM,
+      ...initialValues,
+      attachmentUrls: normalizedUrls,
+      attachmentFiles: normalizedFiles,
+      attachmentUrl: normalizedUrls[0] ?? initialValues.attachmentUrl ?? "",
+    });
+  });
   const [touched, setTouched] = useState({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
@@ -75,6 +130,41 @@ export default function AssignmentForm({
   };
 
   const handleBlur = (e) => setTouched((t) => ({ ...t, [e.target.name]: true }));
+
+  const handleAddLink = () => {
+    setValues((v) => syncAttachmentState({ ...v, attachmentUrls: [...(Array.isArray(v.attachmentUrls) ? v.attachmentUrls : []), ""] }));
+  };
+
+  const handleLinkChange = (index, value) => {
+    setValues((v) => {
+      const nextUrls = [...(Array.isArray(v.attachmentUrls) ? v.attachmentUrls : [])];
+      nextUrls[index] = value;
+      return syncAttachmentState({ ...v, attachmentUrls: nextUrls, attachmentUrl: value });
+    });
+  };
+
+  const handleRemoveLink = (index) => {
+    setValues((v) => {
+      const nextUrls = (Array.isArray(v.attachmentUrls) ? v.attachmentUrls : []).filter((_, idx) => idx !== index);
+      return syncAttachmentState({ ...v, attachmentUrls: nextUrls });
+    });
+  };
+
+  const handleFileChange = async (e) => {
+    const pickedFiles = Array.from(e.target.files ?? []);
+    if (!pickedFiles.length) return;
+
+    const nextFiles = [...(Array.isArray(values.attachmentFiles) ? values.attachmentFiles : []), ...pickedFiles];
+    setValues((v) => syncAttachmentState({ ...v, attachmentFiles: nextFiles, attachmentFile: nextFiles[0] ?? null }));
+    e.target.value = "";
+  };
+
+  const handleRemoveFile = (index) => {
+    setValues((v) => {
+      const nextFiles = (Array.isArray(v.attachmentFiles) ? v.attachmentFiles : []).filter((_, idx) => idx !== index);
+      return syncAttachmentState({ ...v, attachmentFiles: nextFiles, attachmentFile: nextFiles[0] ?? null });
+    });
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -152,9 +242,96 @@ export default function AssignmentForm({
             <textarea rows={4} placeholder={"1. Correct structure (5 pts)\n2. Works as expected (5 pts)"} {...fieldProps("criteria")} />
           </Field>
 
-          <Field id="attachmentUrl" label="Attachment link" error={showError("attachmentUrl")} hint="e.g. a link to a rubric PDF or supporting document">
-            <input type="url" placeholder="https://..." {...fieldProps("attachmentUrl")} />
-          </Field>
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <label htmlFor="attachmentUrl" className="block text-sm font-medium text-slate-700">
+                Attachment link
+              </label>
+              <button type="button" onClick={handleAddLink} className="text-sm font-medium text-indigo-700 hover:text-indigo-800">
+                + Add another link
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {values.attachmentUrls.length === 0 ? (
+                <input
+                  id="attachmentUrl"
+                  type="url"
+                  placeholder="https://..."
+                  value=""
+                  onChange={(e) => handleLinkChange(0, e.target.value)}
+                  onBlur={handleBlur}
+                  className={inputClass(Boolean(showError("attachmentUrl")))}
+                  disabled={submitting}
+                />
+              ) : (
+                values.attachmentUrls.map((url, index) => (
+                  <div key={`link-${index}`} className="flex gap-2">
+                    <input
+                      id={index === 0 ? "attachmentUrl" : undefined}
+                      type="url"
+                      placeholder="https://..."
+                      value={url}
+                      onChange={(e) => handleLinkChange(index, e.target.value)}
+                      onBlur={handleBlur}
+                      className={`${inputClass(Boolean(showError("attachmentUrl")))} flex-1`}
+                      disabled={submitting}
+                    />
+                    {values.attachmentUrls.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveLink(index)}
+                        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+            {showError("attachmentUrl") && (
+              <p id="attachmentUrl-error" className="mt-1.5 text-xs text-rose-600">
+                {errors.attachmentUrl}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="attachmentFile" className="mb-1.5 block text-sm font-medium text-slate-700">
+              Attachment file
+            </label>
+            <input
+              id="attachmentFile"
+              type="file"
+              multiple
+              accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp"
+              onChange={handleFileChange}
+              disabled={submitting}
+              className="block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-700 shadow-sm file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200 focus:outline-none focus:ring-2 focus:border-indigo-400 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:bg-slate-50"
+            />
+
+            {values.attachmentFiles.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {values.attachmentFiles.map((fileEntry, index) => {
+                  const fileName = fileEntry instanceof File ? fileEntry.name : fileEntry?.name || "Attachment";
+
+                  return (
+                    <div key={`${fileName}-${index}`} className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-xs text-slate-600">
+                        Selected file: <span className="font-medium text-slate-700">{fileName}</span>
+                      </p>
+                      <button type="button" onClick={() => handleRemoveFile(index)} className="text-xs font-medium text-rose-600 hover:text-rose-700">
+                        Remove
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mt-1.5 text-xs text-slate-500">PDF, DOCX, or image files are supported.</p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -164,7 +341,6 @@ export default function AssignmentForm({
         </div>
       )}
 
-      {/* Sticky so the actions stay reachable without scrolling past the long form. */}
       <div className="sticky bottom-0 z-10 -mx-4 flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50/95 px-4 py-4 backdrop-blur sm:mx-0 sm:flex-row sm:justify-end sm:rounded-2xl sm:border sm:bg-white/95 sm:px-6 sm:shadow-lg">
         <button
           type="button"

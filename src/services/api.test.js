@@ -1,6 +1,7 @@
 // @vitest-environment node
 // (the real fetch/AbortSignal APIs are needed by httpClient; jsdom lacks AbortSignal.any)
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { resolveApiBaseUrl } from "../config";
 import { assignmentApi, cohortApi, submissionApi } from "./api";
 
 let fetchMock;
@@ -15,6 +16,31 @@ beforeEach(() => {
 });
 
 afterEach(() => vi.unstubAllGlobals());
+
+describe("resolveApiBaseUrl", () => {
+  it("prefers the configured API base URL when provided", () => {
+    expect(
+      resolveApiBaseUrl({
+        env: { VITE_API_BASE_URL: "https://example.com/api" },
+        location: { origin: "https://preview.example.web.app" },
+      }),
+    ).toBe("https://example.com/api");
+  });
+
+  it("uses the active Firebase hosting origin for localhost, web.app, and firebaseapp.com preview URLs", () => {
+    expect(resolveApiBaseUrl({ env: {}, location: { origin: "http://localhost:5173" } })).toBe("http://localhost:5173");
+    expect(resolveApiBaseUrl({ env: {}, location: { origin: "https://learning-platform-assign-658de.web.app" } })).toBe(
+      "https://learning-platform-assign-658de.web.app",
+    );
+    expect(resolveApiBaseUrl({ env: {}, location: { origin: "https://preview-123--learning-platform-assign-658de.firebaseapp.com" } })).toBe(
+      "https://preview-123--learning-platform-assign-658de.firebaseapp.com",
+    );
+  });
+
+  it("falls back to a relative path when there is no explicit origin to use", () => {
+    expect(resolveApiBaseUrl({ env: {}, location: {} })).toBe("");
+  });
+});
 
 describe("submissionApi.listByAssignment (Team 06 integration)", () => {
   it("normalises a healthy Team 06 response", async () => {
@@ -64,6 +90,35 @@ describe("assignmentApi", () => {
   it("exposes the HTTP status on 404 so pages can show 'not found'", async () => {
     fetchMock.mockReturnValue(respond(404, { error: "Assignment not found" }));
     await expect(assignmentApi.get("missing")).rejects.toMatchObject({ status: 404, message: "Assignment not found" });
+  });
+
+  it("sends plain JSON without the file object when an assignment includes a file upload", async () => {
+    fetchMock.mockReturnValue(respond(200, { id: "a1" }));
+
+    await assignmentApi.create({
+      cohortId: "sec-1",
+      instructorId: "inst-1",
+      title: "Assignment 3",
+      description: "Upload a brief report",
+      criteria: "Passes review",
+      dueDate: "2099-12-31T23:59:00.000Z",
+      attachmentUrl: "data:application/pdf;base64,SGVsbG8=",
+      attachmentName: "rubric.pdf",
+      attachmentFile: new File(["hello"], "rubric.pdf", { type: "application/pdf" }),
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/assignments", expect.objectContaining({ method: "POST" }));
+    const requestOptions = fetchMock.mock.calls[0][1];
+    expect(requestOptions.body).toBe(JSON.stringify({
+      cohortId: "sec-1",
+      instructorId: "inst-1",
+      title: "Assignment 3",
+      description: "Upload a brief report",
+      criteria: "Passes review",
+      dueDate: "2099-12-31T23:59:00.000Z",
+      attachmentUrl: "data:application/pdf;base64,SGVsbG8=",
+      attachmentName: "rubric.pdf",
+    }));
   });
 
   it("deletes with DELETE /api/assignments/:id", async () => {

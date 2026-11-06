@@ -44,20 +44,70 @@ export default function EditAssignmentPage() {
   const initialValues = useMemo(() => {
     if (!assignment.data) return null;
     const a = assignment.data;
+
+    const attachmentItems = Array.isArray(a.attachments) ? a.attachments : [];
+    const urlItems = attachmentItems
+      .filter((item) => item && (item.type === "link" || (!item.type && item.url)))
+      .map((item) => item.url || item.href || item.link)
+      .filter(Boolean);
+
+    const fileItems = attachmentItems
+      .filter((item) => item && item.type === "file")
+      .map((item) => ({ name: item.name || "Attachment", url: item.url || a.fileUrl }))
+      .filter((item) => item.url);
+
+    if (a.attachmentUrl && !urlItems.includes(a.attachmentUrl)) urlItems.push(a.attachmentUrl);
+    if (a.fileUrl && !fileItems.some((item) => item.url === a.fileUrl)) {
+      fileItems.push({ name: a.attachmentName || "Attachment", url: a.fileUrl });
+    }
+
     return {
       title: a.title,
-      // If the stored section no longer exists, start blank so the user has to pick a real one.
       cohortId: sectionMissing ? "" : a.cohortId,
       description: a.description,
       criteria: a.criteria,
       dueDate: a.dueDate ? toDateTimeLocalValue(a.dueDate) : "",
+      attachmentUrls: urlItems,
+      attachmentFiles: fileItems,
       attachmentUrl: a.attachmentUrl ?? "",
+      fileUrl: a.fileUrl ?? "",
+      attachmentName: a.attachmentName || (a.fileUrl ? "Attachment" : a.attachmentUrl ? a.attachmentUrl.split(/[?#]/)[0].split("/").pop() : ""),
     };
   }, [assignment.data, sectionMissing]);
 
   const handleSubmit = async (values) => {
     setSubmitting(true);
     try {
+      const attachmentUrls = (Array.isArray(values.attachmentUrls) ? values.attachmentUrls : [])
+        .map((url) => String(url ?? "").trim())
+        .filter((url) => url.length > 0);
+
+      const attachmentFiles = Array.isArray(values.attachmentFiles) ? values.attachmentFiles : [];
+
+      const fileUrls = await Promise.all(
+        attachmentFiles.map(async (fileEntry) => {
+          if (fileEntry && typeof fileEntry === "object" && fileEntry.url) return fileEntry.url;
+          if (fileEntry instanceof File) {
+            return await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = () => reject(new Error("Unable to read the selected file."));
+              reader.readAsDataURL(fileEntry);
+            });
+          }
+          return null;
+        }),
+      );
+
+      const attachments = [
+        ...attachmentUrls.map((url) => ({ type: "link", url, name: url })),
+        ...attachmentFiles.map((fileEntry, index) => ({
+          type: "file",
+          url: fileUrls[index] || null,
+          name: fileEntry instanceof File ? fileEntry.name : fileEntry?.name || "Attachment",
+        })),
+      ].filter((item) => item.url);
+
       await assignmentApi.update(assignmentId, {
         cohortId: values.cohortId.trim(),
         instructorId: CURRENT_INSTRUCTOR_ID,
@@ -65,7 +115,13 @@ export default function EditAssignmentPage() {
         description: values.description.trim(),
         criteria: values.criteria.trim(),
         dueDate: new Date(values.dueDate).toISOString(),
-        attachmentUrl: values.attachmentUrl.trim() || null,
+        attachments,
+        attachmentUrls,
+        fileUrls: fileUrls.filter(Boolean),
+        attachmentNames: attachmentFiles.map((fileEntry) => fileEntry instanceof File ? fileEntry.name : fileEntry?.name || "Attachment"),
+        attachmentUrl: attachmentUrls[0] ?? null,
+        fileUrl: fileUrls.find(Boolean) ?? null,
+        attachmentName: attachmentFiles[0] instanceof File ? attachmentFiles[0].name : attachmentFiles[0]?.name || null,
       });
 
       toast.success(`Updated "${values.title.trim()}"`, { title: "Saved" });
@@ -88,7 +144,6 @@ export default function EditAssignmentPage() {
     </>
   );
 
-  // Wait for the section list too, so the form mounts once with the right initial section.
   if (assignment.isLoading || cohorts.isLoading) {
     return (
       <div className="mx-auto max-w-3xl">
@@ -127,12 +182,12 @@ export default function EditAssignmentPage() {
       )}
 
       <AssignmentForm
-        key={assignment.data.id}
+        key={assignmentId}
         cohorts={cohorts.isError ? null : cohorts.data}
-        cohortsLoading={false}
+        cohortsLoading={cohorts.isLoading}
         submitting={submitting}
         onSubmit={handleSubmit}
-        onCancel={() => navigate(`/assignments/${assignmentId}`)}
+        onCancel={() => navigate(-1)}
         initialValues={initialValues}
         submitLabel="Save Changes"
       />
