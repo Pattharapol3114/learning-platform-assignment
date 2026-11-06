@@ -16,7 +16,25 @@ function normalizeAssignment(raw) {
     description: raw.description ?? "",
     criteria: raw.criteria ?? "",
     dueDate: toDate(raw.dueDate),
+    attachments: Array.isArray(raw.attachments) ? raw.attachments : [],
+    attachmentUrls: Array.isArray(raw.attachmentUrls)
+      ? raw.attachmentUrls
+      : raw.attachmentUrl
+        ? [raw.attachmentUrl]
+        : [],
+    fileUrls: Array.isArray(raw.fileUrls)
+      ? raw.fileUrls
+      : raw.fileUrl || raw.file_url
+        ? [raw.fileUrl || raw.file_url]
+        : [],
+    attachmentNames: Array.isArray(raw.attachmentNames)
+      ? raw.attachmentNames
+      : raw.attachmentName || raw.fileName || raw.file_name
+        ? [raw.attachmentName ?? raw.fileName ?? raw.file_name]
+        : [],
     attachmentUrl: raw.attachmentUrl || null,
+    fileUrl: raw.fileUrl || raw.file_url || null,
+    attachmentName: raw.attachmentName ?? raw.fileName ?? raw.file_name ?? null,
     createdAt: toDate(raw.createdAt),
   };
 }
@@ -49,11 +67,13 @@ export const assignmentApi = {
 
   /** @returns {Promise<{ id: string }>} */
   create(payload) {
-    return request("/api/assignments", { method: "POST", body: payload });
+    const { attachmentFile, ...body } = payload ?? {};
+    return request("/api/assignments", { method: "POST", body });
   },
 
   update(assignmentId, payload) {
-    return request(`/api/assignments/${encodeURIComponent(assignmentId)}`, { method: "PUT", body: payload });
+    const { attachmentFile, ...body } = payload ?? {};
+    return request(`/api/assignments/${encodeURIComponent(assignmentId)}`, { method: "PUT", body });
   },
 
   remove(assignmentId) {

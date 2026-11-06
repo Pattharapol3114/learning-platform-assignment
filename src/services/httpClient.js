@@ -16,12 +16,15 @@ export async function request(path, { method = "GET", body, signal, timeout = RE
   const timeoutSignal = AbortSignal.timeout(timeout);
   const combinedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
 
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+  const payload = isFormData ? body : body ? JSON.stringify(body) : undefined;
+
   let response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
+      headers: isFormData ? undefined : body ? { "Content-Type": "application/json" } : undefined,
+      body: payload,
       signal: combinedSignal,
     });
   } catch (err) {

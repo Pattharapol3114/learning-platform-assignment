@@ -24,13 +24,20 @@ export function validateAssignment(values, { now = new Date(), unchangedDueDate 
     else if (due <= now && values.dueDate !== unchangedDueDate) errors.dueDate = "Due date must be in the future";
   }
 
-  const url = values.attachmentUrl.trim();
-  if (url) {
+  const attachmentUrls = Array.isArray(values.attachmentUrls)
+    ? values.attachmentUrls.map((item) => String(item ?? "").trim()).filter(Boolean)
+    : [];
+  const preferredUrl = typeof values.attachmentUrl === "string" ? values.attachmentUrl.trim() : attachmentUrls[0] || "";
+
+  for (const url of attachmentUrls.length ? attachmentUrls : preferredUrl ? [preferredUrl] : []) {
     try {
       const parsed = new URL(url);
-      if (!["http:", "https:"].includes(parsed.protocol)) throw new Error();
+      if (!["http:", "https:", "data:", "blob:"].includes(parsed.protocol)) throw new Error();
     } catch {
-      errors.attachmentUrl = "Link must start with http:// or https://";
+      if (!url.startsWith("data:") && !url.startsWith("blob:")) {
+        errors.attachmentUrl = "Link must start with http://, https://, data:, or blob:";
+        break;
+      }
     }
   }
 

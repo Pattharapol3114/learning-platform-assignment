@@ -66,6 +66,35 @@ describe("assignmentApi", () => {
     await expect(assignmentApi.get("missing")).rejects.toMatchObject({ status: 404, message: "Assignment not found" });
   });
 
+  it("sends plain JSON without the file object when an assignment includes a file upload", async () => {
+    fetchMock.mockReturnValue(respond(200, { id: "a1" }));
+
+    await assignmentApi.create({
+      cohortId: "sec-1",
+      instructorId: "inst-1",
+      title: "Assignment 3",
+      description: "Upload a brief report",
+      criteria: "Passes review",
+      dueDate: "2099-12-31T23:59:00.000Z",
+      attachmentUrl: "data:application/pdf;base64,SGVsbG8=",
+      attachmentName: "rubric.pdf",
+      attachmentFile: new File(["hello"], "rubric.pdf", { type: "application/pdf" }),
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/assignments", expect.objectContaining({ method: "POST" }));
+    const requestOptions = fetchMock.mock.calls[0][1];
+    expect(requestOptions.body).toBe(JSON.stringify({
+      cohortId: "sec-1",
+      instructorId: "inst-1",
+      title: "Assignment 3",
+      description: "Upload a brief report",
+      criteria: "Passes review",
+      dueDate: "2099-12-31T23:59:00.000Z",
+      attachmentUrl: "data:application/pdf;base64,SGVsbG8=",
+      attachmentName: "rubric.pdf",
+    }));
+  });
+
   it("deletes with DELETE /api/assignments/:id", async () => {
     fetchMock.mockReturnValue(respond(200, { id: "a1", deleted: true }));
     await assignmentApi.remove("a1");
