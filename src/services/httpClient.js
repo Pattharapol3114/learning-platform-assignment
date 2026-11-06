@@ -5,7 +5,7 @@ export class ApiError extends Error {
     super(message);
     this.name = "ApiError";
     this.status = status; // HTTP status, or null for network/timeout failures
-    this.kind = kind; // "http" | "network" | "timeout" | "parse"
+    this.kind = kind; // "http" | "network" | "timeout" | "parse" | "conflict"
     this.body = body;
   }
 }

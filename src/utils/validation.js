@@ -1,5 +1,9 @@
 // Field rules mirror the PRD data model: everything required except attachmentUrl.
-export function validateAssignment(values, now = new Date()) {
+//
+// `unchangedDueDate` is the form's original dueDate value when editing. A due
+// date the user didn't touch is accepted even if it's already past, so overdue
+// assignments can still have typos fixed; a *new* due date must be in the future.
+export function validateAssignment(values, { now = new Date(), unchangedDueDate = null } = {}) {
   const errors = {};
 
   const title = values.title.trim();
@@ -17,7 +21,7 @@ export function validateAssignment(values, now = new Date()) {
   } else {
     const due = new Date(values.dueDate);
     if (Number.isNaN(due.getTime())) errors.dueDate = "Invalid date";
-    else if (due <= now) errors.dueDate = "Due date must be in the future";
+    else if (due <= now && values.dueDate !== unchangedDueDate) errors.dueDate = "Due date must be in the future";
   }
 
   const url = values.attachmentUrl.trim();
@@ -31,4 +35,11 @@ export function validateAssignment(values, now = new Date()) {
   }
 
   return errors;
+}
+
+export function validateSectionName(name) {
+  const trimmed = name.trim();
+  if (!trimmed) return "Please enter a section name";
+  if (trimmed.length > 80) return "Section name must be 80 characters or fewer";
+  return null;
 }

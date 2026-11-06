@@ -4,6 +4,7 @@ import DashboardPage from "./pages/DashboardPage";
 import CreateAssignmentPage from "./pages/CreateAssignmentPage";
 import EditAssignmentPage from "./pages/EditAssignmentPage";
 import AssignmentDetailPage from "./pages/AssignmentDetailPage";
+import SectionsPage from "./pages/SectionsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="assignments/new" element={<CreateAssignmentPage />} />
         <Route path="assignments/:assignmentId/edit" element={<EditAssignmentPage />} />
         <Route path="assignments/:assignmentId" element={<AssignmentDetailPage />} />
+        <Route path="sections" element={<SectionsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

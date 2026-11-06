@@ -8,9 +8,13 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
+    test: {
+      environment: 'jsdom',
+      setupFiles: './src/test/setup.js',
+    },
     server: {
-      // The Vercel API does not send CORS headers, so in dev we proxy /api
-      // through Vite to keep requests same-origin from the browser's view.
+      // Dev requests stay same-origin and are forwarded to the Vercel API,
+      // so local development doesn't depend on the API's CORS allowlist.
       proxy: {
         '/api': {
           target: env.API_PROXY_TARGET || 'https://learning-platform-api-five.vercel.app',

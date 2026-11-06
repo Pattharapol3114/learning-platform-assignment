@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Spinner from "../ui/Spinner";
 import { toDateTimeLocalValue } from "../../utils/date";
 import { validateAssignment } from "../../utils/validation";
@@ -47,6 +47,8 @@ function Field({ id, label, required, hint, error, children }) {
  *   submitting: boolean,
  *   onSubmit: (values: typeof EMPTY_FORM) => void,
  *   onCancel: () => void,
+ *   initialValues?: Partial<typeof EMPTY_FORM> | null, // edit mode
+ *   submitLabel?: string,
  * }} props
  */
 export default function AssignmentForm({
@@ -58,17 +60,12 @@ export default function AssignmentForm({
   initialValues = null,
   submitLabel = "Create Assignment",
 }) {
+  // initialValues is read once; callers remount the form (via `key`) to reset it.
   const [values, setValues] = useState(initialValues ? { ...EMPTY_FORM, ...initialValues } : EMPTY_FORM);
   const [touched, setTouched] = useState({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
-  useEffect(() => {
-    setValues(initialValues ? { ...EMPTY_FORM, ...initialValues } : EMPTY_FORM);
-    setTouched({});
-    setSubmitAttempted(false);
-  }, [initialValues]);
-
-  const errors = validateAssignment(values);
+  const errors = validateAssignment(values, { unchangedDueDate: initialValues?.dueDate ?? null });
   const isValid = Object.keys(errors).length === 0;
   const showError = (name) => (touched[name] || submitAttempted) && errors[name];
 

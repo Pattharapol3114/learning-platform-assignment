@@ -1,4 +1,4 @@
-import { request } from "./httpClient";
+import { ApiError, request } from "./httpClient";
 import { toDate } from "../utils/date";
 
 // The API returns Firestore Timestamps as {_seconds, _nanoseconds} for records
@@ -55,6 +55,10 @@ export const assignmentApi = {
   update(assignmentId, payload) {
     return request(`/api/assignments/${encodeURIComponent(assignmentId)}`, { method: "PUT", body: payload });
   },
+
+  remove(assignmentId) {
+    return request(`/api/assignments/${encodeURIComponent(assignmentId)}`, { method: "DELETE" });
+  },
 };
 
 // ---------- Team 05: Cohorts ----------
@@ -67,6 +71,36 @@ export const cohortApi = {
 
   get(cohortId, { signal } = {}) {
     return request(`/api/cohorts/${encodeURIComponent(cohortId)}`, { signal });
+  },
+
+  /** @returns {Promise<{ id: string }>} */
+  create({ name, instructorId }) {
+    return request("/api/cohorts", { method: "POST", body: { name, instructorId } });
+  },
+
+  rename(cohortId, name) {
+    return request(`/api/cohorts/${encodeURIComponent(cohortId)}`, { method: "PUT", body: { name } });
+  },
+
+  async countAssignments(cohortId, { signal } = {}) {
+    const data = await request(`/api/cohorts/${encodeURIComponent(cohortId)}/assignments`, { signal });
+    return Array.isArray(data) ? data.length : 0;
+  },
+
+  /**
+   * PRD DA-04: a section must not be deleted while it still has assignments,
+   * otherwise they'd be orphaned. Re-checks on the server right before
+   * deleting rather than trusting a count the UI may have loaded earlier.
+   */
+  async removeIfEmpty(cohortId) {
+    const count = await this.countAssignments(cohortId);
+    if (count > 0) {
+      throw new ApiError(
+        `This section still has ${count} assignment${count === 1 ? "" : "s"}. Move or delete them first.`,
+        { status: 409, kind: "conflict" },
+      );
+    }
+    return request(`/api/cohorts/${encodeURIComponent(cohortId)}`, { method: "DELETE" });
   },
 };
 

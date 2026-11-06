@@ -1,16 +1,74 @@
-# React + Vite
+# Learning Platform — Assignment Module (Team 05)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React frontend for instructors to create, view, edit and delete assignments, manage
+sections, and see who has submitted work through Team 06's Submission Module.
 
-Currently, two official plugins are available:
+## How it fits together
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```
+Browser (React + Vite + Tailwind)
+   │  /api/...
+   ▼
+Team 05 REST API on Vercel  ── repo: learning-platform-api
+   ├─ /api/assignments, /api/cohorts ──► Cloud Firestore (firebase-admin)
+   └─ /api/team06/assignments/:id/submissions ──► Team 06 API
+                                   (returns 200 + fallback:true if Team 06 is down)
+```
 
-## React Compiler
+- **Development:** Vite proxies `/api` to the Vercel API, so no CORS setup is needed locally.
+- **Production:** the build calls the Vercel API directly (`.env.production`), so the API
+  must list the site's origin in its CORS allowlist (`api/_cors.js` / `ALLOWED_ORIGINS`).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Getting started
 
-## Expanding the Oxlint configuration
+```bash
+npm install
+npm run dev        # http://localhost:5173
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+To point local development at another API (e.g. a local `vercel dev`):
+
+```bash
+API_PROXY_TARGET=http://localhost:3000 npm run dev
+```
+
+## Scripts
+
+| Command              | What it does                                   |
+| -------------------- | ---------------------------------------------- |
+| `npm run dev`        | Start the dev server                           |
+| `npm test`           | Run the Vitest suite once                      |
+| `npm run test:watch` | Run tests in watch mode                        |
+| `npm run lint`       | Lint with oxlint                               |
+| `npm run build`      | Production build into `dist/`                  |
+| `npm run deploy`     | Build and deploy to Firebase Hosting           |
+
+## Deploying to Firebase Hosting
+
+1. Make sure the API allows the hosting origin (`https://learning-platform-assign-658de.web.app`)
+   and has been redeployed on Vercel.
+2. `firebase login` with an account that has access to `learning-platform-assign-658de`.
+3. `npm run deploy`
+
+## Project structure
+
+```
+src/
+  services/      API calls only (httpClient.js, api.js) — no UI code
+  hooks/         useAsync (loading/error/reload), useSectionName
+  components/    ui/, layout/, assignments/, submissions/
+  pages/         Dashboard, Create/Edit/Detail Assignment, Sections, NotFound
+  utils/         date parsing/formatting, form validation
+```
+
+## Behaviour worth knowing
+
+- **Team 06 outages never break the page.** `SubmissionList` shows a fallback when the proxy
+  reports `fallback: true`, when the request fails, or when bad data crashes rendering
+  (error boundary). Assignment details keep working either way.
+- **Sections can't be deleted while they still have assignments** (PRD DA-04). The UI checks
+  first and the API also returns `409`.
+- **Editing an overdue assignment** is allowed as long as the due date is left unchanged; a
+  changed due date must be in the future.
+- **No login yet.** Records are created for the mock instructor `instructor_test_01`
+  (`src/config.js`) until Firebase Auth (FR-01) is added.

@@ -1,6 +1,9 @@
-import { Link, useParams } from "react-router-dom";
+import { useCallback, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { assignmentApi } from "../services/api";
 import { useAsync } from "../hooks/useAsync";
+import { useToast } from "../context/ToastContext";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { useSectionName } from "../hooks/useSectionName";
 import { formatDateTime, formatRelative, getDueStatus } from "../utils/date";
 import { DueStatusBadge } from "../components/ui/Badge";
@@ -111,6 +114,25 @@ export default function AssignmentDetailPage() {
 
   const notFound = isError && error.status === 404;
 
+  const navigate = useNavigate();
+  const toast = useToast();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const closeConfirm = useCallback(() => setConfirmOpen(false), []);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await assignmentApi.remove(assignmentId);
+      toast.success(`Deleted "${assignment.title}"`, { title: "Assignment deleted" });
+      navigate("/");
+    } catch (err) {
+      toast.error(err.message, { title: "Couldn't delete assignment", duration: 6000 });
+      setDeleting(false);
+      setConfirmOpen(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -118,14 +140,33 @@ export default function AssignmentDetailPage() {
           ← Back to dashboard
         </Link>
         {!notFound && !isLoading && !isError && (
-          <Link
-            to={`/assignments/${assignmentId}/edit`}
-            className="inline-flex items-center rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
-          >
-            Edit Assignment
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              to={`/assignments/${assignmentId}/edit`}
+              className="inline-flex items-center rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+            >
+              Edit Assignment
+            </Link>
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(true)}
+              className="inline-flex items-center rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-50"
+            >
+              Delete
+            </button>
+          </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete this assignment?"
+        message={`"${assignment?.title ?? ""}" will be permanently deleted. This can't be undone.`}
+        confirmLabel="Delete assignment"
+        busy={deleting}
+        onConfirm={handleDelete}
+        onCancel={closeConfirm}
+      />
 
       {isLoading ? (
         <DetailSkeleton />
