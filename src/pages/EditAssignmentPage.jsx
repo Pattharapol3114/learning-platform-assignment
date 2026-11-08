@@ -5,6 +5,7 @@ import { useAsync } from "../hooks/useAsync";
 import { useToast } from "../context/ToastContext";
 import { CURRENT_INSTRUCTOR_ID } from "../config";
 import { toDateTimeLocalValue } from "../utils/date";
+import { buildAttachmentFields } from "../utils/attachments";
 import AssignmentForm from "../components/assignments/AssignmentForm";
 import ErrorState from "../components/ui/ErrorState";
 import Skeleton from "../components/ui/Skeleton";
@@ -78,35 +79,7 @@ export default function EditAssignmentPage() {
   const handleSubmit = async (values) => {
     setSubmitting(true);
     try {
-      const attachmentUrls = (Array.isArray(values.attachmentUrls) ? values.attachmentUrls : [])
-        .map((url) => String(url ?? "").trim())
-        .filter((url) => url.length > 0);
-
-      const attachmentFiles = Array.isArray(values.attachmentFiles) ? values.attachmentFiles : [];
-
-      const fileUrls = await Promise.all(
-        attachmentFiles.map(async (fileEntry) => {
-          if (fileEntry && typeof fileEntry === "object" && fileEntry.url) return fileEntry.url;
-          if (fileEntry instanceof File) {
-            return await new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result);
-              reader.onerror = () => reject(new Error("Unable to read the selected file."));
-              reader.readAsDataURL(fileEntry);
-            });
-          }
-          return null;
-        }),
-      );
-
-      const attachments = [
-        ...attachmentUrls.map((url) => ({ type: "link", url, name: url })),
-        ...attachmentFiles.map((fileEntry, index) => ({
-          type: "file",
-          url: fileUrls[index] || null,
-          name: fileEntry instanceof File ? fileEntry.name : fileEntry?.name || "Attachment",
-        })),
-      ].filter((item) => item.url);
+      const attachmentFields = await buildAttachmentFields(values);
 
       await assignmentApi.update(assignmentId, {
         cohortId: values.cohortId.trim(),
@@ -115,13 +88,7 @@ export default function EditAssignmentPage() {
         description: values.description.trim(),
         criteria: values.criteria.trim(),
         dueDate: new Date(values.dueDate).toISOString(),
-        attachments,
-        attachmentUrls,
-        fileUrls: fileUrls.filter(Boolean),
-        attachmentNames: attachmentFiles.map((fileEntry) => fileEntry instanceof File ? fileEntry.name : fileEntry?.name || "Attachment"),
-        attachmentUrl: attachmentUrls[0] ?? null,
-        fileUrl: fileUrls.find(Boolean) ?? null,
-        attachmentName: attachmentFiles[0] instanceof File ? attachmentFiles[0].name : attachmentFiles[0]?.name || null,
+        ...attachmentFields,
       });
 
       toast.success(`Updated "${values.title.trim()}"`, { title: "Saved" });

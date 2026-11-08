@@ -1,3 +1,5 @@
+import { MAX_ATTACHMENT_BYTES, totalAttachmentBytes } from "./attachments";
+
 // Field rules mirror the PRD data model: everything required except attachmentUrl.
 //
 // `unchangedDueDate` is the form's original dueDate value when editing. A due
@@ -32,13 +34,15 @@ export function validateAssignment(values, { now = new Date(), unchangedDueDate 
   for (const url of attachmentUrls.length ? attachmentUrls : preferredUrl ? [preferredUrl] : []) {
     try {
       const parsed = new URL(url);
-      if (!["http:", "https:", "data:", "blob:"].includes(parsed.protocol)) throw new Error();
+      if (!["http:", "https:"].includes(parsed.protocol)) throw new Error();
     } catch {
-      if (!url.startsWith("data:") && !url.startsWith("blob:")) {
-        errors.attachmentUrl = "Link must start with http://, https://, data:, or blob:";
-        break;
-      }
+      errors.attachmentUrl = "Link must start with http:// or https://";
+      break;
     }
+  }
+
+  if (totalAttachmentBytes(values.attachmentFiles) > MAX_ATTACHMENT_BYTES) {
+    errors.attachmentFile = "Attached files must be 700 KB or less in total. Use a link for larger files.";
   }
 
   return errors;

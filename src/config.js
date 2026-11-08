@@ -14,8 +14,8 @@ export function resolveApiBaseUrl({
   return "";
 }
 
-// Default to the active origin so Preview Channels, Hosting, and localhost all
-// target the same Firebase-hosted API without a stale hardcoded backend URL.
+// Production builds set VITE_API_BASE_URL to the Vercel API. Without it (local
+// development) requests stay on the current origin and go through the Vite proxy.
 export const API_BASE_URL = resolveApiBaseUrl();
 
 // Client-side timeout for every request (ms). The Team 06 proxy itself gives

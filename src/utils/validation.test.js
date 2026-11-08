@@ -50,6 +50,18 @@ describe("validateAssignment", () => {
   });
 });
 
+describe("attachment rules", () => {
+  it("rejects data: and blob: links", () => {
+    expect(validateAssignment({ ...valid, attachmentUrls: ["data:text/plain,hi"] }, { now: NOW }).attachmentUrl).toBeDefined();
+    expect(validateAssignment({ ...valid, attachmentUrls: ["blob:https://x.com/1"] }, { now: NOW }).attachmentUrl).toBeDefined();
+  });
+
+  it("counts existing stored files toward the size limit", () => {
+    const stored = { name: "old.pdf", url: `data:application/pdf;base64,${"A".repeat(1000 * 1024)}` };
+    expect(validateAssignment({ ...valid, attachmentFiles: [stored] }, { now: NOW }).attachmentFile).toBeDefined();
+  });
+});
+
 describe("validateSectionName", () => {
   it("requires a non-blank name up to 80 characters", () => {
     expect(validateSectionName("   ")).toBe("Please enter a section name");

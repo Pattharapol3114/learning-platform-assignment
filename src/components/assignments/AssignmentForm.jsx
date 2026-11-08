@@ -132,7 +132,8 @@ export default function AssignmentForm({
   const handleBlur = (e) => setTouched((t) => ({ ...t, [e.target.name]: true }));
 
   const handleAddLink = () => {
-    setValues((v) => syncAttachmentState({ ...v, attachmentUrls: [...(Array.isArray(v.attachmentUrls) ? v.attachmentUrls : []), ""] }));
+    // An empty list still renders one blank row, so count that row before adding another.
+    setValues((v) => syncAttachmentState({ ...v, attachmentUrls: [...(v.attachmentUrls.length ? v.attachmentUrls : [""]), ""] }));
   };
 
   const handleLinkChange = (index, value) => {
@@ -156,6 +157,7 @@ export default function AssignmentForm({
 
     const nextFiles = [...(Array.isArray(values.attachmentFiles) ? values.attachmentFiles : []), ...pickedFiles];
     setValues((v) => syncAttachmentState({ ...v, attachmentFiles: nextFiles, attachmentFile: nextFiles[0] ?? null }));
+    setTouched((t) => ({ ...t, attachmentFile: true }));
     e.target.value = "";
   };
 
@@ -186,6 +188,8 @@ export default function AssignmentForm({
   });
 
   const minDue = toDateTimeLocalValue(new Date());
+  // Always render through the same list so the first keystroke doesn't remount the input.
+  const linkRows = values.attachmentUrls.length ? values.attachmentUrls : [""];
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-6">
@@ -253,42 +257,30 @@ export default function AssignmentForm({
             </div>
 
             <div className="space-y-3">
-              {values.attachmentUrls.length === 0 ? (
-                <input
-                  id="attachmentUrl"
-                  type="url"
-                  placeholder="https://..."
-                  value=""
-                  onChange={(e) => handleLinkChange(0, e.target.value)}
-                  onBlur={handleBlur}
-                  className={inputClass(Boolean(showError("attachmentUrl")))}
-                  disabled={submitting}
-                />
-              ) : (
-                values.attachmentUrls.map((url, index) => (
-                  <div key={`link-${index}`} className="flex gap-2">
-                    <input
-                      id={index === 0 ? "attachmentUrl" : undefined}
-                      type="url"
-                      placeholder="https://..."
-                      value={url}
-                      onChange={(e) => handleLinkChange(index, e.target.value)}
-                      onBlur={handleBlur}
-                      className={`${inputClass(Boolean(showError("attachmentUrl")))} flex-1`}
-                      disabled={submitting}
-                    />
-                    {values.attachmentUrls.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveLink(index)}
-                        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                ))
-              )}
+              {linkRows.map((url, index) => (
+                <div key={`link-${index}`} className="flex gap-2">
+                  <input
+                    id={index === 0 ? "attachmentUrl" : undefined}
+                    name="attachmentUrl"
+                    type="url"
+                    placeholder="https://..."
+                    value={url}
+                    onChange={(e) => handleLinkChange(index, e.target.value)}
+                    onBlur={handleBlur}
+                    className={`${inputClass(Boolean(showError("attachmentUrl")))} flex-1`}
+                    disabled={submitting}
+                  />
+                  {linkRows.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveLink(index)}
+                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
             {showError("attachmentUrl") && (
               <p id="attachmentUrl-error" className="mt-1.5 text-xs text-rose-600">
@@ -329,8 +321,9 @@ export default function AssignmentForm({
                 })}
               </div>
             ) : (
-              <p className="mt-1.5 text-xs text-slate-500">PDF, DOCX, or image files are supported.</p>
+              <p className="mt-1.5 text-xs text-slate-500">PDF, DOCX, or image files, up to 700 KB in total. Use a link for larger files.</p>
             )}
+            {showError("attachmentFile") && <p className="mt-1.5 text-xs text-rose-600">{errors.attachmentFile}</p>}
           </div>
         </div>
       </div>

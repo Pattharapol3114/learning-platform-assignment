@@ -267,7 +267,7 @@ export default function AssignmentDetailPage() {
     [assignmentId],
   );
 
-  const notFound = !isLoading && !isError && !assignment;
+  const notFound = isError && error.status === 404;
   const closeConfirm = useCallback(() => setConfirmOpen(false), []);
 
   const handleDelete = async () => {

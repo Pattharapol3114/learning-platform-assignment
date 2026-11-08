@@ -106,6 +106,34 @@ describe("AssignmentForm", () => {
     );
   });
 
+  it("keeps focus in the attachment link field while typing", async () => {
+    const { user } = renderForm();
+    const input = screen.getByPlaceholderText("https://...");
+
+    await user.click(input);
+    await user.keyboard("https");
+
+    expect(screen.getByPlaceholderText("https://...")).toHaveFocus();
+    expect(screen.getByPlaceholderText("https://...")).toHaveValue("https");
+  });
+
+  it("shows a second link field on the first click of Add another link", async () => {
+    const { user } = renderForm();
+
+    await user.click(screen.getByRole("button", { name: /Add another link/i }));
+
+    expect(screen.getAllByPlaceholderText("https://...")).toHaveLength(2);
+  });
+
+  it("blocks submission when attached files are over the size limit", async () => {
+    const { user } = renderForm();
+    const large = new File([new Uint8Array(700 * 1024 + 1)], "large.pdf", { type: "application/pdf" });
+
+    await user.upload(screen.getByLabelText(/Attachment file/i), large);
+
+    expect(screen.getByText(/700 KB or less in total/)).toBeInTheDocument();
+  });
+
   it("lets an overdue assignment be saved when its due date is left unchanged", async () => {
     const { onSubmit, user } = renderForm({
       submitLabel: "Save Changes",
