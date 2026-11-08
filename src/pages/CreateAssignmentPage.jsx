@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { assignmentApi, cohortApi } from "../services/api";
 import { useAsync } from "../hooks/useAsync";
 import { useToast } from "../context/ToastContext";
-import { CURRENT_INSTRUCTOR_ID } from "../config";
 import { buildAttachmentFields } from "../utils/attachments";
 import AssignmentForm from "../components/assignments/AssignmentForm";
 
@@ -21,7 +20,6 @@ export default function CreateAssignmentPage() {
 
       const payload = {
         cohortId: values.cohortId.trim(),
-        instructorId: CURRENT_INSTRUCTOR_ID,
         title: values.title.trim(),
         description: values.description.trim(),
         criteria: values.criteria.trim(),

@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { assignmentApi, cohortApi } from "../services/api";
 import { useAsync } from "../hooks/useAsync";
 import { useToast } from "../context/ToastContext";
-import { CURRENT_INSTRUCTOR_ID } from "../config";
 import { toDateTimeLocalValue } from "../utils/date";
 import { buildAttachmentFields } from "../utils/attachments";
 import AssignmentForm from "../components/assignments/AssignmentForm";
@@ -83,7 +82,6 @@ export default function EditAssignmentPage() {
 
       await assignmentApi.update(assignmentId, {
         cohortId: values.cohortId.trim(),
-        instructorId: CURRENT_INSTRUCTOR_ID,
         title: values.title.trim(),
         description: values.description.trim(),
         criteria: values.criteria.trim(),

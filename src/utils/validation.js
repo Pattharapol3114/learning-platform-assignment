@@ -54,3 +54,18 @@ export function validateSectionName(name) {
   if (trimmed.length > 80) return "Section name must be 80 characters or fewer";
   return null;
 }
+
+export function validateLogin({ fullName, email, password }, { isSignUp = false } = {}) {
+  const errors = {};
+
+  if (isSignUp && !fullName.trim()) errors.fullName = "Please enter your full name";
+
+  const address = email.trim();
+  if (!address) errors.email = "Please enter your email";
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) errors.email = "Please enter a valid email address";
+
+  if (!password) errors.password = "Please enter your password";
+  else if (isSignUp && password.length < 6) errors.password = "Password must be at least 6 characters";
+
+  return errors;
+}

@@ -94,8 +94,8 @@ export const cohortApi = {
   },
 
   /** @returns {Promise<{ id: string }>} */
-  create({ name, instructorId }) {
-    return request("/api/cohorts", { method: "POST", body: { name, instructorId } });
+  create({ name }) {
+    return request("/api/cohorts", { method: "POST", body: { name } });
   },
 
   rename(cohortId, name) {
@@ -121,6 +121,14 @@ export const cohortApi = {
       );
     }
     return request(`/api/cohorts/${encodeURIComponent(cohortId)}`, { method: "DELETE" });
+  },
+};
+
+// ---------- Team 05: Instructor profile ----------
+
+export const profileApi = {
+  save(fullName) {
+    return request("/api/me", { method: "PUT", body: { fullName } });
   },
 };
 

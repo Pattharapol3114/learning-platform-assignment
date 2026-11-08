@@ -70,5 +70,15 @@ src/
   first and the API also returns `409`.
 - **Editing an overdue assignment** is allowed as long as the due date is left unchanged; a
   changed due date must be in the future.
-- **No login yet.** Records are created for the mock instructor `instructor_test_01`
-  (`src/config.js`) until Firebase Auth (FR-01) is added.
+- **Instructors sign in with Firebase Auth** (email/password). Every API request carries their
+  ID token, and they only see their own sections and assignments.
+
+## API access
+
+| Caller | How it authenticates | Can do |
+| --- | --- | --- |
+| Signed-in instructor | `Authorization: Bearer <Firebase ID token>` | Read and change their own data |
+| Partner team | `X-Integration-Key: <key>` | Read (`GET`) only, all instructors |
+
+Vercel environment variables: `INTEGRATION_READ_KEY` is the partner read key. `REQUIRE_AUTH=true`
+turns off anonymous access; until it is set, requests without credentials behave as before.

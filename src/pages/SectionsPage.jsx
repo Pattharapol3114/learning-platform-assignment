@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from "react";
 import { assignmentApi, cohortApi } from "../services/api";
 import { useAsync } from "../hooks/useAsync";
 import { useToast } from "../context/ToastContext";
-import { CURRENT_INSTRUCTOR_ID } from "../config";
 import { validateSectionName } from "../utils/validation";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import EmptyState from "../components/ui/EmptyState";
@@ -27,7 +26,7 @@ function CreateSectionForm({ onCreated }) {
 
     setSaving(true);
     try {
-      await cohortApi.create({ name: name.trim(), instructorId: CURRENT_INSTRUCTOR_ID });
+      await cohortApi.create({ name: name.trim() });
       toast.success(`Created section "${name.trim()}"`, { title: "Section created" });
       setName("");
       onCreated();

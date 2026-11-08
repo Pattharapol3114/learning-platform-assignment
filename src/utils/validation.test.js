@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateAssignment, validateSectionName } from "./validation";
+import { validateAssignment, validateLogin, validateSectionName } from "./validation";
 
 const NOW = new Date("2026-11-06T12:00:00");
 
@@ -59,6 +59,20 @@ describe("attachment rules", () => {
   it("counts existing stored files toward the size limit", () => {
     const stored = { name: "old.pdf", url: `data:application/pdf;base64,${"A".repeat(1000 * 1024)}` };
     expect(validateAssignment({ ...valid, attachmentFiles: [stored] }, { now: NOW }).attachmentFile).toBeDefined();
+  });
+});
+
+describe("validateLogin", () => {
+  const login = { fullName: "", email: "a@mfu.ac.th", password: "secret1" };
+
+  it("needs only email and password to sign in", () => {
+    expect(validateLogin(login)).toEqual({});
+    expect(Object.keys(validateLogin({ ...login, email: "nope", password: "" })).sort()).toEqual(["email", "password"]);
+  });
+
+  it("needs a full name and a 6+ character password to sign up", () => {
+    const errors = validateLogin({ ...login, password: "12345" }, { isSignUp: true });
+    expect(Object.keys(errors).sort()).toEqual(["fullName", "password"]);
   });
 });
 

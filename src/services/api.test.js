@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveApiBaseUrl } from "../config";
 import { assignmentApi, cohortApi, submissionApi } from "./api";
+import { setAuthTokenProvider } from "./httpClient";
 
 let fetchMock;
 
@@ -83,6 +84,27 @@ describe("submissionApi.listByAssignment (Team 06 integration)", () => {
   it("raises an ApiError when our proxy itself fails", async () => {
     fetchMock.mockReturnValue(respond(500, { error: "boom" }));
     await expect(submissionApi.listByAssignment("a1")).rejects.toMatchObject({ name: "ApiError", status: 500 });
+  });
+});
+
+describe("authentication", () => {
+  afterEach(() => setAuthTokenProvider(() => null));
+
+  it("sends the instructor's token with every request", async () => {
+    setAuthTokenProvider(() => Promise.resolve("id-token"));
+    fetchMock.mockReturnValue(respond(200, []));
+
+    await assignmentApi.list();
+
+    expect(fetchMock.mock.calls[0][1].headers).toEqual({ Authorization: "Bearer id-token" });
+  });
+
+  it("sends no Authorization header when nobody is signed in", async () => {
+    fetchMock.mockReturnValue(respond(200, []));
+
+    await assignmentApi.list();
+
+    expect(fetchMock.mock.calls[0][1].headers).toBeUndefined();
   });
 });
 

@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 const navClass = ({ isActive }) =>
   `whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium transition sm:px-3 ${
@@ -6,6 +7,8 @@ const navClass = ({ isActive }) =>
   }`;
 
 export default function AppLayout() {
+  const { user, signOut } = useAuth();
+
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/85 backdrop-blur">
@@ -24,10 +27,22 @@ export default function AppLayout() {
             <NavLink to="/sections" className={navClass}>
               Sections
             </NavLink>
-            <NavLink to="/assignments/new" className={navClass}>
-              <span className="hidden sm:inline">+ New Assignment</span>
-              <span className="sm:hidden">+ New</span>
-            </NavLink>
+            {/* On phones the Dashboard button covers this, leaving room for Sign out. */}
+            <span className="hidden sm:inline-flex">
+              <NavLink to="/assignments/new" className={navClass}>
+                + New Assignment
+              </NavLink>
+            </span>
+            <span className="ml-1 hidden max-w-40 truncate border-l border-slate-200 pl-3 text-sm text-slate-600 lg:block" title={user?.email}>
+              {user?.displayName || user?.email}
+            </span>
+            <button
+              type="button"
+              onClick={signOut}
+              className="whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 sm:px-3"
+            >
+              Sign out
+            </button>
           </nav>
         </div>
       </header>

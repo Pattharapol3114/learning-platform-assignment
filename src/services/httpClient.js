@@ -10,6 +10,13 @@ export class ApiError extends Error {
   }
 }
 
+let getAuthToken = () => null;
+
+// authService registers this so requests carry the signed-in instructor's token.
+export function setAuthTokenProvider(provider) {
+  getAuthToken = provider;
+}
+
 // Thin fetch wrapper: JSON in/out, per-request timeout, and one error type
 // for every failure mode so UI code can branch on `kind` / `status`.
 export async function request(path, { method = "GET", body, signal, timeout = REQUEST_TIMEOUT_MS } = {}) {
@@ -24,9 +31,14 @@ export async function request(path, { method = "GET", body, signal, timeout = RE
 
   let response;
   try {
+    const token = await getAuthToken();
+    const headers = {
+      ...(body && !isFormData ? { "Content-Type": "application/json" } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
     response = await fetch(url, {
       method,
-      headers: isFormData ? undefined : body ? { "Content-Type": "application/json" } : undefined,
+      headers: Object.keys(headers).length ? headers : undefined,
       body: payload,
       signal: combinedSignal,
     });
