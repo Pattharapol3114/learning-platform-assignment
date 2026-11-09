@@ -80,5 +80,5 @@ src/
 | Signed-in instructor | `Authorization: Bearer <Firebase ID token>` | Read and change their own data |
 | Partner team | `X-Integration-Key: <key>` | Read (`GET`) only, all instructors |
 
-Vercel environment variables: `INTEGRATION_READ_KEY` is the partner read key. `REQUIRE_AUTH=true`
+Partner teams use the existing `TEAM06_INTEGRATION_KEY` value (or `INTEGRATION_READ_KEY` if set). `REQUIRE_AUTH=true`
 turns off anonymous access; until it is set, requests without credentials behave as before.
