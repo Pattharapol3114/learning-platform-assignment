@@ -72,7 +72,8 @@ describe("validateLogin", () => {
 
   it("needs a full name and a 6+ character password to sign up", () => {
     const errors = validateLogin({ ...login, password: "12345" }, { isSignUp: true });
-    expect(Object.keys(errors).sort()).toEqual(["fullName", "password"]);
+    expect(Object.keys(errors).sort()).toEqual(["consent", "fullName", "password"]);
+    expect(validateLogin({ ...login, fullName: "A", consent: true }, { isSignUp: true })).toEqual({});
   });
 });
 

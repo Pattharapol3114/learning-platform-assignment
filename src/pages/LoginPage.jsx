@@ -34,7 +34,7 @@ export default function LoginPage() {
   const { user, loading, signIn, signUp } = useAuth();
   const location = useLocation();
   const [mode, setMode] = useState("signin");
-  const [values, setValues] = useState({ fullName: "", email: "", password: "" });
+  const [values, setValues] = useState({ fullName: "", email: "", password: "", consent: false });
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -122,6 +122,35 @@ export default function LoginPage() {
             disabled={submitting}
             error={errors.password}
           />
+
+          {isSignUp && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
+              <p className="font-semibold text-slate-800">Privacy notice (PDPA)</p>
+              <ul className="mt-2 list-disc space-y-1 pl-4">
+                <li>We collect your full name and email to create your account and sign you in.</li>
+                <li>Your name is shown with the assignments you create, including to the partner Submission system (Team 06).</li>
+                <li>Your data is stored in Firebase (Google Cloud) and is used only for this course platform.</li>
+                <li>You can ask the Team 05 administrators to correct or delete your account at any time.</li>
+              </ul>
+              <label className="mt-3 flex items-start gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={values.consent}
+                  onChange={(e) => setValues((v) => ({ ...v, consent: e.target.checked }))}
+                  disabled={submitting}
+                  aria-invalid={Boolean(errors.consent)}
+                  aria-describedby={errors.consent ? "consent-error" : undefined}
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                I have read the privacy notice and agree to the collection and use of my data.
+              </label>
+              {errors.consent && (
+                <p id="consent-error" className="mt-1.5 text-xs text-rose-600">
+                  {errors.consent}
+                </p>
+              )}
+            </div>
+          )}
 
           <button
             type="submit"

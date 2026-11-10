@@ -55,7 +55,7 @@ export function validateSectionName(name) {
   return null;
 }
 
-export function validateLogin({ fullName, email, password }, { isSignUp = false } = {}) {
+export function validateLogin({ fullName, email, password, consent = false }, { isSignUp = false } = {}) {
   const errors = {};
 
   if (isSignUp && !fullName.trim()) errors.fullName = "Please enter your full name";
@@ -66,6 +66,8 @@ export function validateLogin({ fullName, email, password }, { isSignUp = false 
 
   if (!password) errors.password = "Please enter your password";
   else if (isSignUp && password.length < 6) errors.password = "Password must be at least 6 characters";
+
+  if (isSignUp && !consent) errors.consent = "Please accept the privacy notice to create an account";
 
   return errors;
 }

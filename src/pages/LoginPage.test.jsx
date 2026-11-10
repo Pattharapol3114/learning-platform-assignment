@@ -66,8 +66,22 @@ describe("LoginPage", () => {
     await user.type(screen.getByLabelText("Full name"), "Aj. Somchai");
     await user.type(screen.getByLabelText("Email"), "a@mfu.ac.th");
     await user.type(screen.getByLabelText("Password"), "secret1");
+    await user.click(screen.getByRole("checkbox", { name: /privacy notice/i }));
     await user.click(screen.getByRole("button", { name: "Create account" }));
 
     expect(signUp).toHaveBeenCalledWith("Aj. Somchai", "a@mfu.ac.th", "secret1");
+  });
+
+  it("does not create an account until the privacy notice is accepted", async () => {
+    const user = renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Create an account" }));
+    await user.type(screen.getByLabelText("Full name"), "Aj. Somchai");
+    await user.type(screen.getByLabelText("Email"), "a@mfu.ac.th");
+    await user.type(screen.getByLabelText("Password"), "secret1");
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+
+    expect(signUp).not.toHaveBeenCalled();
+    expect(screen.getByText(/accept the privacy notice/)).toBeInTheDocument();
   });
 });
